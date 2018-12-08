@@ -7,6 +7,8 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. It is the main r
 
 ```{r}
 library(MASS)
+library(ggplot2)
+library(GGally)
 ```
 
 We first read in the data and develope an exploratory data analysis.
@@ -16,5 +18,10 @@ data <- read.table('../dataset/abalone.txt', header=FALSE, sep=',', col.names= c
 summary(data)
 ```
 
+It is interested to see the height data has minimum of zero. Aparrently, this is not possible. It might be the reason of the wrong input, but these data points should be excluded.
+
+```{r}
+ggpairs(data, aes(colour = sex, alpha = 0.8), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+```
 
 
