@@ -13,7 +13,7 @@ library(GGally)
 # Part I: data loading and feature engineering
 We first read in the data and develope an exploratory data analysis.
 ```{r}
-col_names <- c('sex','length','diameter','height','weight.w','weight.s','weight.v','weight.sh','rings')
+col_names <- c('sex','length','diameter','height','whole','shucked','viscera','shell','rings')
 data <- read.table('../dataset/abalone.txt', header=FALSE, sep=',', col.names= col_names)
 is.na(data$frame) #check missing value 
 summary(data)
@@ -24,7 +24,7 @@ Investigate qualitative and quantitative variables:
 ```{r}
 sapply(data, class)
 ```
-It's observed that only sex is quantitative variable, we'll consider indicator variable later.
+It's observed that only sex is qualitative variable, we'll consider indicator variable later.
 
 It is interested to see the height data has minimum of zero. Aparrently, this is not possible. It might be the reason of the wrong input, but these data points should be excluded.
 ```{r}
@@ -36,9 +36,9 @@ summary(data)
 ```
 2 observed error data were deleted.
 
-Also the predictor `weight.w` should be the linear function of variables `weight.s`, `weight.v` and `weight.sh`, which is `weight.w` = `weight.s` + `weight.v`+ `weight.sh` + weight loss during weighing operations 
+Also the predictor `whole` should be the linear function of variables `shucked`, `viscera` and `shell`, which is `whole` = `shucked` + `viscera`+ `shell` + weight loss during weighing operations 
 ```{r}
-data$weight.loss <- data$weight.w - data$weight.s - data$weight.v - data$weight.sh
+data$weight.loss <- data$whole - data$shucked - data$viscera - data$shell
 nrow(data[data$weight.loss < 0,]) # number of data with whole weight less than sum of other three weights 
 data <- subset(data, data$weight.loss >= 0)
 summary(data)
@@ -47,7 +47,7 @@ summary(data)
 
 The ggpairs plot below has same functionality as scatter plot, boxplots, and histogram plots 
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
-ggpairs(data, aes(colour = sex, alpha = 0.8), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+ggpairs(data, aes(colour = sex, alpha = 0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
 ```
 1. Determination of response variable: rings. 
 2. High correlation -- multicoliearity. 
@@ -66,7 +66,6 @@ Create a new variable N = M + F, change to binary indicator variable
 ```{r}
 data['sex'] <- ifelse(data$sex == 'I', 'I', 'N')
 data$sex <- as.factor(data$sex)
-summary(data)
 ```
 # Part II
 Data splitting (training~70%, validation~30%)
@@ -83,10 +82,10 @@ par(mfrow=c(3,3))
 boxplot(data_train$length, data_validation$length, col = 'orange', main = 'length', names=c('train', 'validation'))
 boxplot(data_train$diameter, data_validation$diameter, col = 'orange', main = 'diameter', names=c('train', 'validation'))
 boxplot(data_train$height, data_validation$height, col = 'orange', main = 'height', names=c('train', 'validation'))
-boxplot(data_train$weight.w, data_validation$weight.w, col = 'orange', main = 'whole weight', names=c('train', 'validation'))
-boxplot(data_train$weight.s, data_validation$weight.s, col = 'orange', main = 'shucked weight', names=c('train', 'validation'))
-boxplot(data_train$weight.v, data_validation$weight.v, col = 'orange', main = 'viscera weight', names=c('train', 'validation'))
-boxplot(data_train$weight.sh, data_validation$weight.sh, col = 'orange', main = 'shell weight', names=c('train', 'validation'))
+boxplot(data_train$whole, data_validation$whole, col = 'orange', main = 'whole weight', names=c('train', 'validation'))
+boxplot(data_train$shucked, data_validation$shucked, col = 'orange', main = 'shucked weight', names=c('train', 'validation'))
+boxplot(data_train$viscera, data_validation$viscera, col = 'orange', main = 'viscera weight', names=c('train', 'validation'))
+boxplot(data_train$shell, data_validation$shell, col = 'orange', main = 'shell weight', names=c('train', 'validation'))
 boxplot(data_train$rings, data_validation$rings, col = 'orange', main = 'rings', names=c('train', 'validation'))
 ```
 The data distribution looks similar. 
