@@ -10,18 +10,91 @@ library(MASS)
 library(ggplot2)
 library(GGally)
 ```
-
+# Part I: data loading and feature engineering
 We first read in the data and develope an exploratory data analysis.
 ```{r}
 col_names <- c('sex','length','diameter','height','weight.w','weight.s','weight.v','weight.sh','rings')
 data <- read.table('../dataset/abalone.txt', header=FALSE, sep=',', col.names= col_names)
+is.na(data$frame) #check missing value 
 summary(data)
 ```
+No missing data observed.
+
+Investigate qualitative and quantitative variables:
+```{r}
+sapply(data, class)
+```
+It's observed that only sex is quantitative variable, we'll consider indicator variable later.
 
 It is interested to see the height data has minimum of zero. Aparrently, this is not possible. It might be the reason of the wrong input, but these data points should be excluded.
-
 ```{r}
+#d_data <- data[data$height == 0,] #get index of error data 
+#index_d_data <- as.numeric(rownames(d_data))
+#data <- data[-(index_d_data)]
+data <- subset(data, data$height != 0)
+summary(data)
+```
+2 observed error data were deleted.
+
+Also the predictor `weight.w` should be the linear function of variables `weight.s`, `weight.v` and `weight.sh`, which is `weight.w` = `weight.s` + `weight.v`+ `weight.sh` + weight loss during weighing operations 
+```{r}
+data$weight.loss <- data$weight.w - data$weight.s - data$weight.v - data$weight.sh
+nrow(data[data$weight.loss < 0,]) # number of data with whole weight less than sum of other three weights 
+data <- subset(data, data$weight.loss >= 0)
+summary(data)
+```
+153 data were removed.
+
+The ggpairs plot below has same functionality as scatter plot, boxplots, and histogram plots 
+```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 ggpairs(data, aes(colour = sex, alpha = 0.8), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
 ```
+1. Determination of response variable: rings. 
+2. High correlation -- multicoliearity. 
+3. Distributions of F and M are similar w.r.t all predictors --> simplify indicator variable to I and N.
+4. Distribution of response are left-skewed -- box-cox.
+
+Pan plots of sex (need pie charts for all predictors?)
+```{r}
+sex_value <- c(1307, 1342, 1528)
+sex <- c("F", "I", "M")
+piepercent <- round(100*sex_value/sum(sex_value), 1)
+pieplot <- pie(sex_value, labels = piepercent, main="Abalone sex pie chart", col = rainbow(length(sex_value)))
+legend("topright", sex, cex = 0.8, fill = rainbow(length(sex_value)))
+```
+Create a new variable N = M + F, change to binary indicator variable 
+```{r}
+data['sex'] <- ifelse(data$sex == 'I', 'I', 'N')
+data$sex <- as.factor(data$sex)
+summary(data)
+```
+# Part II
+Data splitting (training~70%, validation~30%)
+```{r}
+set.seed(40)  #set seed for random number generator
+n_data <- nrow(data)
+indexes <- sample(1:n_data, size = 0.3*n_data)
+data_validation <- data[indexes,]
+data_train <- data[-indexes,]
+```
+Examine the similarity of training set and validation set
+```{r}
+par(mfrow=c(3,3))
+boxplot(data_train$length, data_validation$length, col = 'orange', main = 'length', names=c('train', 'validation'))
+boxplot(data_train$diameter, data_validation$diameter, col = 'orange', main = 'diameter', names=c('train', 'validation'))
+boxplot(data_train$height, data_validation$height, col = 'orange', main = 'height', names=c('train', 'validation'))
+boxplot(data_train$weight.w, data_validation$weight.w, col = 'orange', main = 'whole weight', names=c('train', 'validation'))
+boxplot(data_train$weight.s, data_validation$weight.s, col = 'orange', main = 'shucked weight', names=c('train', 'validation'))
+boxplot(data_train$weight.v, data_validation$weight.v, col = 'orange', main = 'viscera weight', names=c('train', 'validation'))
+boxplot(data_train$weight.sh, data_validation$weight.sh, col = 'orange', main = 'shell weight', names=c('train', 'validation'))
+boxplot(data_train$rings, data_validation$rings, col = 'orange', main = 'rings', names=c('train', 'validation'))
+```
+The data distribution looks similar. 
+
+The first model: Additive Multiple Linear Regression Model
+
+
+
+
 
 
