@@ -220,7 +220,6 @@ Check Model Diag
 #### Residual plots with the interaction terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
 res_m2 <- resid(model2)
-data$num_sex <- as.numeric(data$sex)
 par(mfrow=c(8,3))
 
 plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
@@ -251,6 +250,17 @@ plot(data_train$shucked*data_train$shell,res_m2,xlab="shucked*shell")
 plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell")
 ```
 
+```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
+res_m2 <- resid(model2)
+par(mfrow=c(4,2))
 
+plot(data_train$length*data_train$length,res_m2,xlab="length*length")
+plot(data_train$diameter*data_train$diameter,res_m2,xlab="diameter*diameter")
+plot(data_train$height*data_train$height,res_m2,xlab="height*height")
+plot(data_train$whole*data_train$whole,res_m2,xlab="whole*whole")
+plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell")
+plot(data_train$viscera*data_train$viscera,res_m2,xlab="viscera*viscera")
+plot(data_train$shucked*data_train$shucked,res_m2,xlab="shucked*shucked")
+```
 
 
