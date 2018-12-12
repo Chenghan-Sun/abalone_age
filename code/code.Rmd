@@ -52,7 +52,9 @@ summary(data)
 ##### 
 The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
-ggpairs(data, aes(colour = sex, alpha = 0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+pdf(file="MyFig.pdf", height = 10, width = 12)
+ggpairs(data, aes(colour = sex, alpha = 0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8, fig.height=10, fig.width=12)
+dev.off()
 ```
 1. Determination of response variable: rings. 
 2. High correlation -- multicoliearity. 
@@ -200,7 +202,9 @@ Check Model Diag
 #### Residual plots with the interaction terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
 res_m2 <- resid(model2)
+data$num_sex <- as.numeric(data$sex)
 par(mfrow=c(8,3))
+
 plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
 plot(data_train$length*data_train$height,res_m2,xlab="length*height")
 plot(data_train$length*data_train$whole,res_m2,xlab="length*whole")
