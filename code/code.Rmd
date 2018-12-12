@@ -126,39 +126,6 @@ boxcox(model2)
 - Residuals vs. fitted value plot still shows nonlinearity, and QQ plot shows right-skewed
 We can see R2 increase to 0.6035 and MSE is much smaller.
 
-#### Residual plots with the interaction terms
-
-```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
-res_m2 <- resid(model2)
-par(mfrow=c(7,3))
-plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
-plot(data_train$length*data_train$height,res_m2,xlab="length*height")
-plot(data_train$length*data_train$whole,res_m2,xlab="length*whole")
-plot(data_train$length*data_train$shucked,res_m2,xlab="length*shucked")
-plot(data_train$length*data_train$viscera,res_m2,xlab="length*viscera")
-plot(data_train$length*data_train$shell,res_m2,xlab="length*shell")
-
-plot(data_train$diameter*data_train$height,res_m2,xlab="diameter*height")
-plot(data_train$diameter*data_train$whole,res_m2,xlab="diameter*whole")
-plot(data_train$diameter*data_train$shucked,res_m2,xlab="diameter*schuked")
-plot(data_train$diameter*data_train$viscera,res_m2,xlab="diameter*viscera")
-plot(data_train$diameter*data_train$shell,res_m2,xlab="diameter*shell")
-
-plot(data_train$height*data_train$whole,res_m2,xlab="height*whole")
-plot(data_train$height*data_train$shucked,res_m2,xlab="height*shucked")
-plot(data_train$height*data_train$viscera,res_m2,xlab="height*viscera")
-plot(data_train$height*data_train$shell,res_m2,xlab="height*shell")
-
-plot(data_train$whole*data_train$shucked,res_m2,xlab="whole*shucked")
-plot(data_train$whole*data_train$viscera,res_m2,xlab="whole*viscera")
-plot(data_train$whole*data_train$shell,res_m2,xlab="whole*shell")
-
-plot(data_train$shucked*data_train$viscera,res_m2,xlab="shucked*viscera")
-plot(data_train$shucked*data_train$shell,res_m2,xlab="shucked*shell")
-
-plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell")
-```
-
 Pair plot for Model2
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 # make another dataset with log(rings) for pair plot
@@ -230,7 +197,37 @@ Both AIC and BIC give except `length`.
 
 Check Model Diag 
 
+#### Residual plots with the interaction terms
+```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
+res_m2 <- resid(model2)
+par(mfrow=c(8,3))
+plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
+plot(data_train$length*data_train$height,res_m2,xlab="length*height")
+plot(data_train$length*data_train$whole,res_m2,xlab="length*whole")
+plot(data_train$length*data_train$shucked,res_m2,xlab="length*shucked")
+plot(data_train$length*data_train$viscera,res_m2,xlab="length*viscera")
+plot(data_train$length*data_train$shell,res_m2,xlab="length*shell")
 
+plot(data_train$diameter*data_train$height,res_m2,xlab="diameter*height")
+plot(data_train$diameter*data_train$whole,res_m2,xlab="diameter*whole")
+plot(data_train$diameter*data_train$shucked,res_m2,xlab="diameter*schuked")
+plot(data_train$diameter*data_train$viscera,res_m2,xlab="diameter*viscera")
+plot(data_train$diameter*data_train$shell,res_m2,xlab="diameter*shell")
+
+plot(data_train$height*data_train$whole,res_m2,xlab="height*whole")
+plot(data_train$height*data_train$shucked,res_m2,xlab="height*shucked")
+plot(data_train$height*data_train$viscera,res_m2,xlab="height*viscera")
+plot(data_train$height*data_train$shell,res_m2,xlab="height*shell")
+
+plot(data_train$whole*data_train$shucked,res_m2,xlab="whole*shucked")
+plot(data_train$whole*data_train$viscera,res_m2,xlab="whole*viscera")
+plot(data_train$whole*data_train$shell,res_m2,xlab="whole*shell")
+
+plot(data_train$shucked*data_train$viscera,res_m2,xlab="shucked*viscera")
+plot(data_train$shucked*data_train$shell,res_m2,xlab="shucked*shell")
+
+plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell")
+```
 
 
 
