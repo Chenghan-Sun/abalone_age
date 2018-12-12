@@ -170,25 +170,24 @@ Part III
 Model selection: 
 Exhaustive search
 ```{r}
-sub_set <- regsubsets(log(rings)~.,data = data_train, nbest = 256, nvmax = 8, method="exhaustive")
+sub_set <- regsubsets(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell,data = data_train, nbest = 1, nvmax = 8, method="exhaustive", really.big=T)
 sum_sub <- summary(sub_set)
 p = as.integer(rownames(sum_sub$which)) + 1 #number of coefficients in each model: p
-ssto = sum((data_train$log(rings) - mean(data_train$log(rings)))^2)
+ssto = sum((log(data_train[,9]) - mean(log(data_train[,9])))^2)
 n=nrow(data_train)
 sse <- sum_sub$rss
 AIC <- n*log(sse/n) + 2*p
 BIC <- n*log(sse/n) + log(n)*p
-res_sub = cbind(sum_sub$which,sse,sum_sub$rsq,sum_sub$adjr2,sum_sub$cp,BIC,aic)
-
+res_sub = cbind(sum_sub$which,sse,sum_sub$rsq,sum_sub$adjr2,sum_sub$cp,BIC,AIC)
 res_sub
 ```
 
 Using stepwise procedure:
 ```{r}
-Model0 <- lm(rings~1, data = data_train)
+Model0 <- lm(log(rings)~1, data = data_train)
 # use BIC as criteria since n >> 8
 n <- length(resid(Model2))
-step_forward_BIC <- stepAIC(Model0, scope=list(upper=Model2, lower=~1), direction="both", k=log(n))
+step_forward_BIC <- stepAIC(Model0, scope=list(upper=Model2), direction="both", k=log(n))
 step_forward_BIC$anova
 ```
 Both AIC and BIC give except `length`.
