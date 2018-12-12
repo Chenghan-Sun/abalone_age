@@ -58,7 +58,11 @@ summary(data)
 ##### 
 The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
-#ggpairs(data, aes(colour = sex, alpha = 0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+
+pdf(file="../fig/MyFig.pdf", height = 10, width = 12)
+ggpairs(data, aes(colour=sex, alpha=0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+dev.off()
+
 ```
 1. Determination of response variable: rings. 
 2. High correlation -- multicoliearity. 
@@ -73,6 +77,24 @@ piepercent <- round(100*sex_value/sum(sex_value), 1)
 pieplot <- pie(sex_value, labels = piepercent, main="Abalone sex pie chart", col = rainbow(length(sex_value)))
 legend("topright", sex, cex = 0.8, fill = rainbow(length(sex_value)))
 ```
+```{r}
+sex_value <- c(1307, 1342, 1528)
+percent <- round(100*sex_value/sum(sex_value), 1)
+bp<- ggplot(data, aes(x='', y='', fill=sex)) + geom_bar(width = 1, stat = "identity") 
+pie <- bp + coord_polar("y", start=0)
+
+blank_theme <- theme_minimal()+
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+pie + blank_theme
+```
+
 Create a new variable N = M + F, change to binary indicator variable 
 ```{r}
 data['sex'] <- ifelse(data$sex == 'I', 'I', 'N')
@@ -213,8 +235,10 @@ No re-check of model diagnostics needed since the final model same as Model2.
 
 #### Residual plots with the interaction terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
+
 res_m2 <- resid(Model2)
 par(mfrow=c(7,3))
+
 plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
 plot(data_train$length*data_train$height,res_m2,xlab="length*height")
 plot(data_train$length*data_train$whole,res_m2,xlab="length*whole")
@@ -302,4 +326,15 @@ plot(Model5, which =c(1,2), col='blue')
 boxcox(Model5)
 ```
 
+```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
+res_m2 <- resid(model2)
+par(mfrow=c(4,2))
 
+plot(data_train$length*data_train$length,res_m2,xlab="length*length")
+plot(data_train$diameter*data_train$diameter,res_m2,xlab="diameter*diameter")
+plot(data_train$height*data_train$height,res_m2,xlab="height*height")
+plot(data_train$whole*data_train$whole,res_m2,xlab="whole*whole")
+plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell")
+plot(data_train$viscera*data_train$viscera,res_m2,xlab="viscera*viscera")
+plot(data_train$shucked*data_train$shucked,res_m2,xlab="shucked*shucked")
+```
