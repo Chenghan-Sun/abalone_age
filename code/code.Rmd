@@ -12,7 +12,10 @@ library(GGally)
 library(car)
 library(leaps)
 ```
-# Part I: data loading and feature engineering
+
+### Part I: data loading and feature engineering
+#### Exploratory data analysis
+##### Summary statistics
 We first read in the data and develope an exploratory data analysis.
 ```{r}
 col_names <- c('sex','length','diameter','height','whole','shucked','viscera','shell','rings')
@@ -20,13 +23,6 @@ data <- read.table('../dataset/abalone.txt', header=FALSE, sep=',', col.names= c
 is.na(data$frame) #check missing value 
 summary(data)
 ```
-No missing data observed.
-
-Investigate qualitative and quantitative variables:
-```{r}
-sapply(data, class)
-```
-It's observed that only sex is qualitative variable, we'll consider indicator variable later.
 
 It is interested to see the height data has minimum of zero. Aparrently, this is not possible. It might be the reason of the wrong input, but these data points should be excluded.
 ```{r}
@@ -38,6 +34,12 @@ summary(data)
 ```
 2 observed error data were deleted.
 
+##### Type of data
+```{r}
+sapply(data, class)
+```
+It's observed that only sex is qualitative variable, we'll consider indicator variable later.
+
 Also the predictor `whole` should be the linear function of variables `shucked`, `viscera` and `shell`, which is `whole` = `shucked` + `viscera`+ `shell` + weight loss during weighing operations 
 ```{r}
 data$weight.loss <- data$whole - data$shucked - data$viscera - data$shell
@@ -47,7 +49,8 @@ summary(data)
 ```
 153 data were removed.
 
-The ggpairs plot below has same functionality as scatter plot, boxplots, and histogram plots 
+##### 
+The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 ggpairs(data, aes(colour = sex, alpha = 0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
 ```
@@ -113,15 +116,48 @@ boxcox(Model1)
 ```
 lambda ~ 0 indicates logrithm transformation of rings 
 ```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE} 
-Model2 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell, data = data_train)
-summary(Model2)
-anova(Model2)['Residuals', 3]
+model2 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell, data=data_train)
+summary(model2)
+anova(model2)['Residuals', 3]
 layout(matrix(c(1,2,3),1,3))
-plot(Model2, which =c(1,2), col='blue')
-boxcox(Model2)
+plot(model2, which =c(1,2), col='blue')
+boxcox(model2)
 ```
 - Residuals vs. fitted value plot still shows nonlinearity, and QQ plot shows right-skewed
 We can see R2 increase to 0.6035 and MSE is much smaller.
+
+#### Residual plots with the interaction terms
+
+```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
+res_m2 <- resid(model2)
+par(mfrow=c(7,3))
+plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter")
+plot(data_train$length*data_train$height,res_m2,xlab="length*height")
+plot(data_train$length*data_train$whole,res_m2,xlab="length*whole")
+plot(data_train$length*data_train$shucked,res_m2,xlab="length*shucked")
+plot(data_train$length*data_train$viscera,res_m2,xlab="length*viscera")
+plot(data_train$length*data_train$shell,res_m2,xlab="length*shell")
+
+plot(data_train$diameter*data_train$height,res_m2,xlab="diameter*height")
+plot(data_train$diameter*data_train$whole,res_m2,xlab="diameter*whole")
+plot(data_train$diameter*data_train$shucked,res_m2,xlab="diameter*schuked")
+plot(data_train$diameter*data_train$viscera,res_m2,xlab="diameter*viscera")
+plot(data_train$diameter*data_train$shell,res_m2,xlab="diameter*shell")
+
+plot(data_train$height*data_train$whole,res_m2,xlab="height*whole")
+plot(data_train$height*data_train$shucked,res_m2,xlab="height*shucked")
+plot(data_train$height*data_train$viscera,res_m2,xlab="height*viscera")
+plot(data_train$height*data_train$shell,res_m2,xlab="height*shell")
+
+plot(data_train$whole*data_train$shucked,res_m2,xlab="whole*shucked")
+plot(data_train$whole*data_train$viscera,res_m2,xlab="whole*viscera")
+plot(data_train$whole*data_train$shell,res_m2,xlab="whole*shell")
+
+plot(data_train$shucked*data_train$viscera,res_m2,xlab="shucked*viscera")
+plot(data_train$shucked*data_train$shell,res_m2,xlab="shucked*shell")
+
+plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell")
+```
 
 Pair plot for Model2
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
@@ -140,8 +176,8 @@ vif(Model2)
 
 added variable plot:
 ```{r}
-Model2_a <- lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data = data_train)
-Model2_wo_whole <- residuals(lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data = data_train))
+Model2_a <- lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train)
+Model2_wo_whole <- residuals(lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train))
 fit_whole <- residuals(lm(whole~sex+length+diameter+height+shucked+viscera+shell, data = data_train))
 plot(Model2_wo_whole~fit_whole, col='blue', main='added variable plot of whole weight')
 abline(lm(Model2_wo_whole~fit_whole), col='red')
