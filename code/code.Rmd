@@ -303,23 +303,29 @@ model_2_bic_both <- lm(log(rings) ~ shell + shucked + diameter + whole + sex + v
     shucked:sex + diameter:height + shell:height, data=data_train)
 summary(model_2_bic_both)
 anova(model_2_bic_both)
+pdf(file="../fig/diag_model_2_bic_both.pdf", width=12)
+plot(model_2_bic_both, which =c(1,2), col='blue')
+dev.off()
 ```
 
 ```{r}
-final_bic_forward = lm(log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
+model_2_bic_for = lm(log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
     height + shell:diameter + shucked:diameter + diameter:sex + 
     shucked:whole + diameter:whole + shucked:sex + sex:height + 
     diameter:height + shell:height, data=data_train)
-summary(final_bic_forward)
-anova(final_bic_forward)
+summary(model_2_bic_for)
+anova(model_2_bic_for)
+pdf(file="../fig/diag_model_2_bic_for.pdf", width=12)
+plot(model_2_bic_for, which=(1,2), col='blue')
+dev.off()
 ```
 
 ```{r}
-final_bic_back = lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
+model_2_bic_back = lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
     viscera + shell + sex:length + sex:height + sex:shucked + 
     length:diameter + length:shucked + diameter:shucked + whole:shell, data=data_train)
-summary(final_bic_back)
-anova(final_bic_back)
+summary(model_2_bic_back)
+anova(model_2_bic_back)
 ```
 
 final_bic_both = log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
@@ -335,7 +341,8 @@ final_bic_back = log(rings) ~ sex + length + diameter + height + whole + shucked
     viscera + shell + sex:length + sex:height + sex:shucked + 
     length:diameter + length:shucked + diameter:shucked + whole:shell
 
-Above are all the model obtained using 
+
+
 Model Diagnostics 
 ```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE}
 #define the new model
