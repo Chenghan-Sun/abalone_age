@@ -15,7 +15,6 @@ library(leaps)
 
 ### Part I: data loading and feature engineering
 #### Exploratory data analysis
-##### Summary statistics
 We first read in the data and develope an exploratory data analysis.
 ```{r}
 col_names <- c('sex','length','diameter','height','whole','shucked','viscera','shell','rings')
@@ -26,9 +25,6 @@ summary(data)
 
 It is interested to see the height data has minimum of zero. Aparrently, this is not possible. It might be the reason of the wrong input, but these data points should be excluded.
 ```{r}
-#d_data <- data[data$height == 0,] #get index of error data 
-#index_d_data <- as.numeric(rownames(d_data))
-#data <- data[-(index_d_data)]
 data <- subset(data, data$height != 0)
 summary(data)
 ```
@@ -40,7 +36,17 @@ sapply(data, class)
 ```
 It's observed that only sex is qualitative variable, we'll consider indicator variable later.
 
-Also the predictor `whole` should be the linear function of variables `shucked`, `viscera` and `shell`, which is `whole` = `shucked` + `shell` + weight loss during weighing operations 
+##### 
+The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
+```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
+
+pdf(file="../fig/origin_pair.pdf", height = 15, width = 12)
+ggpairs(data, aes(colour=sex, alpha=0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
+dev.off()
+
+```
+
+Now we look into some invalid data:
 ```{r}
 data$loss_1 <- data$whole - data$shucked - data$shell
 data$loss_2 <- data$shucked - data$viscera
@@ -54,20 +60,6 @@ data <- subset(data, data$loss_3 >= 0)
 summary(data)
 ```
 22+2 = 24 data were removed.
-
-##### 
-The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
-```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
-
-pdf(file="../fig/MyFig.pdf", height = 10, width = 12)
-ggpairs(data, aes(colour=sex, alpha=0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
-dev.off()
-
-```
-1. Determination of response variable: rings. 
-2. High correlation -- multicoliearity. 
-3. Distributions of F and M are similar w.r.t all predictors --> simplify indicator variable to I and N.
-4. Distribution of response are left-skewed -- box-cox.
 
 Pan plots of sex (need pie charts for all predictors?)
 ```{r}
@@ -92,28 +84,32 @@ blank_theme <- theme_minimal()+
   axis.ticks = element_blank(),
   plot.title=element_text(size=14, face="bold")
   )
+pdf(file="../fig/pie.pdf")
 pie + blank_theme
+dev.off()
 ```
 
+#### Part 2: Split data
 Create a new variable N = M + F, change to binary indicator variable 
 ```{r}
 data['sex'] <- ifelse(data$sex == 'I', 'I', 'N')
 data$sex <- as.factor(data$sex)
 summary(data)
 ```
-# Part II
-Data splitting (training~70%, validation~30%)
+
+Data splitting
 ```{r}
 data <- data[,1:9]
-summary(data)
 set.seed(40)  #set seed for random number generator
 n_data <- nrow(data)
 indexes <- sample(1:n_data, size = 0.3*n_data)
 data_validation <- data[indexes,]
 data_train <- data[-indexes,]
+summary(data_train)
 ```
 Examine the similarity of training set and validation set
 ```{r}
+pdf(file="../fig/data_split.pdf")
 par(mfrow=c(3,3))
 boxplot(data_train$length, data_validation$length, col = 'orange', main = 'length', names=c('train', 'validation'))
 boxplot(data_train$diameter, data_validation$diameter, col = 'orange', main = 'diameter', names=c('train', 'validation'))
@@ -123,53 +119,61 @@ boxplot(data_train$shucked, data_validation$shucked, col = 'orange', main = 'shu
 boxplot(data_train$viscera, data_validation$viscera, col = 'orange', main = 'viscera weight', names=c('train', 'validation'))
 boxplot(data_train$shell, data_validation$shell, col = 'orange', main = 'shell weight', names=c('train', 'validation'))
 boxplot(data_train$rings, data_validation$rings, col = 'orange', main = 'rings', names=c('train', 'validation'))
+dev.off()
 ```
 The data distribution looks similar. 
 
+#### Part 3: first order model
 The first model: Additive Multiple Linear Regression Model: (consider subsets selection from the pool of all first-order effects of the 8 predictors)
 ```{r}
-Model1 <- lm(rings~sex+length+diameter+height+whole+shucked+viscera+shell, data = data_train)
-summary(Model1)
+model_1 <- lm(rings~sex+length+diameter+height+whole+shucked+viscera+shell, data = data_train)
+summary(model_1)
+pdf(file="../fig/model_1.pdf", width=12)
 layout(matrix(c(1,2),1,2))
-plot(Model1, which =c(1,2), col='blue')
+plot(model_1, which =c(1,2), col='blue')
+dev.off()
+anova(model_1)['Residuals', 3]
 ```
 - No equal variance, Q-Q plot shows heavy tailed.
 - The factor level `I` is the reference level of `sex` predictor.
 - From the additive model, predictor `length` is not significant, since `length` and `diameter` are highly correlated. All weight predictors are significant.
 - MSE
-```{r}
-anova(Model1)['Residuals', 3]
-```
 Box-Cox Transformations:
 ```{r}
-boxcox(Model1)
+pdf(file="../fig/boxcox_model_1.pdf")
+boxcox(model_1)
+dev.off()
 ```
 lambda ~ 0 indicates logrithm transformation of rings 
 ```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE} 
-Model2 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell, data=data_train)
-summary(Model2)
-anova(Model2)['Residuals', 3]
+model_1t <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell, data=data_train)
+summary(model_1t)
+anova(model_1t)['Residuals', 3]
+pdf(file="../fig/model_1t.pdf", width=12)
 layout(matrix(c(1,2,3),1,3))
-plot(Model2, which =c(1,2), col='blue')
-boxcox(Model2)
+plot(model_1t, which =c(1,2), col='blue')
+boxcox(model_1t)
+dev.off()
 ```
 - Residuals vs. fitted value plot still shows nonlinearity, and QQ plot shows right-skewed
 We can see R2 increase to 0.6035 and MSE is much smaller.
 
-Pair plot for Model2
+Pair plot for model 1t
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 # make another dataset with log(rings) for pair plot
-#data_log <- data_train
-#data_log[,9] <- log(data_log[,9])
-#ggpairs(data_log, aes(colour = sex, alpha = 0.6), title="Pairs plot for data in training set after log-transformation") + theme_grey(base_size = 8)
+data_log <- data_train
+data_log[,9] <- log(data_log[,9])
+pdf(file="../fig/pair_log_trans.pdf", height=15, width=12)
+ggpairs(data_log, aes(colour = sex, alpha = 0.6), title="Pairs plot for data in training set after log-transformation") + theme_grey(base_size = 8)
+dev.off()
 ```
 No obvious nonlinearity observed.
 
 Multicolinearity 
 ```{r}
-vif(Model2)
+vif(model_1t)
 ```
-`whole` has largest vif.
+`whole` has largest vif. 
 
 added variable plot:
 ```{r}
