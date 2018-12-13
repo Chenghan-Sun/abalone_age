@@ -11,6 +11,7 @@ library(ggplot2)
 library(GGally)
 library(car)
 library(leaps)
+library(xtable)
 ```
 
 ### Part I: data loading and feature engineering
@@ -315,9 +316,6 @@ model_2_bic_for = lm(log(rings) ~ shell + shucked + diameter + whole + sex + vis
     diameter:height + shell:height, data=data_train)
 summary(model_2_bic_for)
 anova(model_2_bic_for)
-pdf(file="../fig/diag_model_2_bic_for.pdf", width=12)
-plot(model_2_bic_for, which=(1,2), col='blue')
-dev.off()
 ```
 
 ```{r}
@@ -431,4 +429,147 @@ m6_stepwise_BIC_back$anova
 
 # Back up
 Code has been deleted
+
+#### Model Validation 
+## Internal Validation 
+```{r}
+# SSEp of models
+sse_model_1t <- anova(model_1t)["Residuals",2] #first order selected model
+sse_model_2_bic_both <- anova(model_2_bic_both)["Residuals",2] #second order selected models
+sse_model_2_bic_for <- anova(model_2_bic_for)["Residuals",2]
+sse_model_2_bic_back <- anova(model_2_bic_back)["Residuals",2]
+print("SSE")
+sse_model_1t
+sse_model_2_bic_both
+sse_model_2_bic_for
+sse_model_2_bic_back
+
+# MSEp of models 
+mse_model_1t <- anova(model_1t)["Residuals",3] #first order selected model
+mse_model_2_bic_both <- anova(model_2_bic_both)["Residuals",3] #second order selected models
+mse_model_2_bic_for <- anova(model_2_bic_for)["Residuals",3]
+mse_model_2_bic_back <- anova(model_2_bic_back)["Residuals",3]
+
+#MSEf
+msef <- anova(model_2full)["Residuals",3]
+
+# P Values
+p_model_1t <- length(model_1t$coefficients)
+p_model_2_bic_both <- length(model_2_bic_both$coefficients)
+p_model_2_bic_for <- length(model_2_bic_for$coefficients)
+p_model_2_bic_back <- length(model_2_bic_back$coefficients)
+print("P Value")
+p_model_1t
+p_model_2_bic_both
+p_model_2_bic_for
+p_model_2_bic_back 
+
+# Calculate Cp for each model 
+cp_model_1t <- sse_model_1t/msef-(n-2*p_model_1t)
+cp_model_2_bic_both <- sse_model_2_bic_both/msef-(n-2*p_model_2_bic_both)
+cp_model_2_bic_for <- sse_model_2_bic_for/msef-(n-2*p_model_2_bic_for)
+cp_model_2_bic_back <- sse_model_2_bic_back/msef-(n-2*p_model_2_bic_back)
+print("Cp")
+cp_model_1t 
+cp_model_2_bic_both
+cp_model_2_bic_for
+cp_model_2_bic_back
+
+# Pressp for each model
+pressp_model_1t <- sum(model_1t$residuals^2/(1-influence(model_1t)$hat)^2)
+pressp_model_2_bic_both <- sum(model_2_bic_both$residuals^2/(1-influence(model_2_bic_both)$hat)^2)
+pressp_model_2_bic_for <- sum(model_2_bic_for$residuals^2/(1-influence(model_2_bic_for)$hat)^2)
+pressp_model_2_bic_back <- sum(model_2_bic_back$residuals^2/(1-influence(model_2_bic_back)$hat)^2)
+print("Pressp")
+pressp_model_1t
+pressp_model_2_bic_both
+pressp_model_2_bic_for
+pressp_model_2_bic_back
+```
+We can say for model_2_bic_back Cp ≈ p (little bias in the model) and P ressp and SSEp are reasonably close (no severeoverfitting by the model).
+
+##External validation using the validation set.
+```{r}
+# For model_1t
+model_1t_valid <- lm(model_1t,data=data_validation) # model_1t on validation data
+summary(model_1t) #summary on training data
+summary(model_1t_valid) #summary on validation data
+#percent change in parameter estimation
+round(abs(coef(model_1t)-coef(model_1t_valid))/abs(coef(model_1t))*100,3)
+sd_model_1t <- summary(model_1t)$coefficients[,"Std. Error"] 
+sd_model_1t_valid <- summary(model_1t_valid)$coefficients[,"Std. Error"]
+#percent change in standard errors
+round(abs(sd_model_1t - sd_model_1t_valid )/sd_model_1t*100,3)
+##mean squared prediction error
+pred_data_model_1t  <- data_validation[,-9]
+pred_model_1t <- predict.lm(model_1t, pred_data_model_1t)
+mspe_model_1t <- mean((pred_model_1t - log(data_validation[,9]))^2)
+
+# For model_2_bic_both
+model_2_bic_both_valid <- lm(model_2_bic_both,data=data_validation) # model_2_bic_both on validation data
+summary(model_2_bic_both) #summary on training data
+summary(model_2_bic_both_valid) #summary on validation data
+#percent change in parameter estimation
+round(abs(coef(model_2_bic_both)-coef(model_2_bic_both_valid))/abs(coef(model_2_bic_both))*100,3)
+sd_model_2_bic_both <- summary(model_2_bic_both)$coefficients[,"Std. Error"] 
+sd_model_2_bic_both_valid <- summary(model_2_bic_both_valid)$coefficients[,"Std. Error"]
+#percent change in standard errors
+round(abs(sd_model_2_bic_both - sd_model_2_bic_both_valid )/sd_model_2_bic_both*100,3)
+##mean squared prediction error
+pred_data_model_2_bic_both <- data_validation[,-9]
+pred_model_2_bic_both <- predict.lm(model_2_bic_both, pred_data_model_2_bic_both)
+mspe_model_2_bic_both <- mean((pred_model_2_bic_both - log(data_validation[,9]))^2)
+
+# For model_2_bic_for
+model_2_bic_for_valid <- lm(model_2_bic_for,data=data_validation) # model_2_bic_for on validation data
+summary(model_2_bic_for) #summary on training data
+summary(model_2_bic_for_valid) #summary on validation data
+#percent change in parameter estimation
+round(abs(coef(model_2_bic_for)-coef(model_2_bic_for_valid))/abs(coef(model_2_bic_for))*100,3)
+sd_model_2_bic_for <- summary(model_2_bic_for)$coefficients[,"Std. Error"] 
+sd_model_2_bic_for_valid <- summary(model_2_bic_for_valid)$coefficients[,"Std. Error"]
+#percent change in standard errors
+round(abs(sd_model_2_bic_for - sd_model_2_bic_for_valid )/sd_model_2_bic_for*100,3)
+##mean squared prediction error
+pred_data_model_2_bic_for <- data_validation[,-9]
+pred_model_2_bic_for <- predict.lm(model_2_bic_for, pred_data_model_2_bic_for)
+mspe_model_2_bic_for <- mean((pred_model_2_bic_for - log(data_validation[,9]))^2)
+
+# For model_2_bic_back
+model_2_bic_back_valid <- lm(model_2_bic_back,data=data_validation) # model_2_bic_back on validation data
+summary(model_2_bic_back) #summary on training data
+summary(model_2_bic_back_valid) #summary on validation data
+#percent change in parameter estimation
+round(abs(coef(model_2_bic_back)-coef(model_2_bic_back_valid))/abs(coef(model_2_bic_back))*100,3)
+sd_model_2_bic_back <- summary(model_2_bic_back)$coefficients[,"Std. Error"] 
+sd_model_2_bic_back_valid <- summary(model_2_bic_back_valid)$coefficients[,"Std. Error"]
+#percent change in standard errors
+round(abs(sd_model_2_bic_back - sd_model_2_bic_back_valid )/sd_model_2_bic_back*100,3)
+##mean squared prediction error
+pred_data_model_2_bic_back <- data_validation[,-9]
+pred_model_2_bic_back <- predict.lm(model_2_bic_back, pred_data_model_2_bic_back)
+mspe_model_2_bic_back <- mean((pred_model_2_bic_back - log(data_validation[,9]))^2)
+
+print("the mspe values for each model")
+mspe_model_1t
+mspe_model_2_bic_both
+mspe_model_2_bic_for
+mspe_model_2_bic_back
+
+# Calculate Pressp/n for each model
+print("value of Pressp for each model")
+pressp_model_1t/n
+pressp_model_2_bic_both/n
+pressp_model_2_bic_for/n
+pressp_model_2_bic_back/n
+```
+
+
+
+
+
+
+
+
+
 
