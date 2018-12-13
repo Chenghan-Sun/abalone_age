@@ -276,6 +276,7 @@ plot(data_train$shucked*data_train$viscera,res_m2,xlab="shucked*viscera", col='b
 plot(data_train$shucked*data_train$shell,res_m2,xlab="shucked*shell", col='blue')
 
 plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell", col='blue')
+dev.off()
 ```
 
 ## define Model4 as interaction full model based on Model2
@@ -305,6 +306,7 @@ model_2_bic_both <- lm(log(rings) ~ shell + shucked + diameter + whole + sex + v
 summary(model_2_bic_both)
 anova(model_2_bic_both)
 pdf(file="../fig/diag_model_2_bic_both.pdf", width=12)
+layout(matrix(c(1,2),1,2))
 plot(model_2_bic_both, which =c(1,2), col='blue')
 dev.off()
 ```
@@ -316,6 +318,11 @@ model_2_bic_for = lm(log(rings) ~ shell + shucked + diameter + whole + sex + vis
     diameter:height + shell:height, data=data_train)
 summary(model_2_bic_for)
 anova(model_2_bic_for)
+
+pdf(file="../fig/diag_model_2_bic_for.pdf", width=12)
+layout(matrix(c(1,2),1,2))
+plot(model_2_bic_for, which =c(1,2), col='blue')
+dev.off()
 ```
 
 ```{r}
@@ -324,6 +331,10 @@ model_2_bic_back = lm(log(rings) ~ sex + length + diameter + height + whole + sh
     length:diameter + length:shucked + diameter:shucked + whole:shell, data=data_train)
 summary(model_2_bic_back)
 anova(model_2_bic_back)
+pdf(file="../fig/diag_model_2_bic_back.pdf", width=12)
+layout(matrix(c(1,2),1,2))
+plot(model_2_bic_back, which =c(1,2), col='blue')
+dev.off()
 ```
 
 final_bic_both = log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
@@ -340,22 +351,11 @@ final_bic_back = log(rings) ~ sex + length + diameter + height + whole + shucked
     length:diameter + length:shucked + diameter:shucked + whole:shell
 
 
-
-Model Diagnostics 
-```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE}
-#define the new model
-Model5 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell+sex:height+length:diameter+length:whole+length:shucked, data=data_train)
-anova(Model5)['Residuals', 3]
-layout(matrix(c(1,2,3),1,3))
-plot(Model5, which =c(1,2), col='blue')
-boxcox(Model5)
-```
-The residual vs. fitted plot shows constant error variance. The Q-Q plot indicates slight heavy tailed. The box-cox procedure shows no further transformation needed.
-
 ## Model with second order effects 
 #### Residual plots with the second order terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
-res_m2 <- resid(model2)
+res_m2 <- resid(model_1t)
+pdf(file="../fig/res_plot_quadratic.pdf", width=12)
 par(mfrow=c(4,2))
 plot(data_train$length*data_train$length,res_m2,xlab="length*length", col='blue')
 plot(data_train$diameter*data_train$diameter,res_m2,xlab="diameter*diameter", col='blue')
@@ -365,6 +365,7 @@ plot(data_train$shucked*data_train$shucked,res_m2,xlab="shucked*shucked", col='b
 plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell", col='blue')
 plot(data_train$viscera*data_train$viscera,res_m2,xlab="viscera*viscera", col='blue')
 plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell", col='blue')
+dev.off()
 ```
 
 #### Plots of each predictor versus the response
@@ -379,57 +380,63 @@ plot(data_train$viscera,data_train$rings,xlab="viscera",ylab="rings", col='blue'
 plot(data_train$shell,data_train$rings,xlab="shell",ylab="rings", col='blue')
 ```
 
-## define Model6 as second-order full model based on Model5
-```{r}
-Model6 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell+sex:height+length:diameter+length:whole+length:shucked+I(length^2)+I(diameter^2)+I(height^2)+I(whole^2)+I(shucked^2)+I(viscera^2)+I(shell^2), data=data_train)
-length(Model6$coefficients) #number of coefficients
-anova(Model6)
-```
-From the ANOVA table, interaction term `length:diameter` is dropped, second order terms `I(length^2)`, `I(diameter^2)`, `I(height^2)`, and `I(shucked^2)` were added to new model. 
 
-Model Diagnostics
-```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE}
-#define the new model7
-Model7 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell+sex:height+length:whole+length:shucked+I(length^2)+I(diameter^2)+I(height^2)+I(shucked^2), data=data_train)
-anova(Model7)['Residuals', 3]
-layout(matrix(c(1,2,3),1,3))
-plot(Model7, which =c(1,2), col='blue')
-boxcox(Model7)
-```
-No obvious improvement than Model5.
-
-#Exhaustive search
 ```{r}
-m7_sub_set <- regsubsets(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell+sex:height+length:diameter+length:whole+length:shucked+I(length^2)+I(diameter^2)+I(height^2)+I(whole^2)+I(shucked^2)+I(viscera^2)+I(shell^2), data = data_train, nbest = 1, nvmax = 19 , method="exhaustive", really.big=T)
-m7_sum_sub <- summary(m7_sub_set)
-m7_p = as.integer(rownames(m7_sum_sub$which)) + 1 #number of coefficients in each model: p
-m7_ssto = sum((log(data_train[,9]) - mean(log(data_train[,9])))^2)
-m7_n=nrow(data_train)
-m7_sse <- m7_sum_sub$rss
-m7_AIC <- m7_n*log(m7_sse/m7_n) + 2*m7_p
-m7_BIC <- m7_n*log(m7_sse/m7_n) + log(m7_n)*m7_p
-m7_res_sub = cbind(m7_sum_sub$which,m7_sse,m7_sum_sub$rsq,m7_sum_sub$adjr2,m7_sum_sub$cp,m7_BIC,m7_AIC)
-colnames(m7_res_sub)=c(colnames(m7_sum_sub$which),"sse", "R^2", "R^2_a", "Cp", "BIC", "AIC")
-m7_res_sub
+model_3full <- lm(log(rings)~.^2+I(length^2)+I(diameter^2)+I(height^2)+I(whole^2)+I(shucked^2)+I(viscera^2)+I(shell^2), data = data_train)
+summary(model_3full)
 ```
-Additive term `length` is dropped, second order terms `I(height^2)` `I(shucked^2)` were keeped based on BIC criteria. 
+
 
 Using stepwise procedure:
 ```{r}
 # Using Model5 as lower model
 # use BIC as criteria since n >> 10
-m6_stepwise_BIC_both <- stepAIC(Model5, scope=list(upper=Model6, lower=Model5), direction="both", k=log(n))
-m6_stepwise_BIC_both$anova
-print('next')
-m6_stepwise_BIC_forw <- stepAIC(Model5, scope=list(upper=Model6, lower=Model5), direction="forward", k=log(n))
-m6_stepwise_BIC_forw$anova
-m6_stepwise_BIC_back <- stepAIC(Model6, scope=list(upper=Model6, lower=Model5), direction="backward", k=log(n))
-m6_stepwise_BIC_back$anova
+stepwise_3_BIC_both <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="both", k=log(n))
+stepwise_3_BIC_both$anova
+stepwise_3_BIC_forw <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="forward", k=log(n))
+stepwise_3_BIC_forw$anova
+stepwise_3_BIC_back <- stepAIC(model_3full, scope=list(upper=model_3full, lower=model_0), direction="backward", k=log(n))
+stepwise_3_BIC_back$anova
 ```
 
-# Back up
-Code has been deleted
+```{r}
+model_3_BIC_both <- lm(log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter, data=data_train)
+summary(model_3_BIC_both)
+anova(model_3_BIC_both)
+```
 
+```{r}
+model_3_BIC_forw <- lm(log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter, data=data_train)
+summary(model_3_BIC_forw)
+anova(model_3_BIC_forw)
+```
+
+```{r}
+model_3_BIC_back <- lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
+    sex:height + sex:shucked + length:shell + diameter:shucked + 
+    whole:shucked, data=data_train)
+summary(model_3_BIC_back)
+anova(model_3_BIC_back)
+```
+
+log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter
+    
+log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter
+    
+log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
+    sex:height + sex:shucked + length:shell + diameter:shucked + 
+    whole:shucked
+    
 #### Model Validation 
 ## Internal Validation 
 ```{r}
@@ -566,10 +573,32 @@ pressp_model_2_bic_back/n
 
 
 
+```{r}
+model_3_BIC_forw <- lm(log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter, data=data_train)
+summary(model_3_BIC_forw)
+anova(model_3_BIC_forw)
+```
 
+```{r}
+model_3_BIC_back <- lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
+    sex:height + sex:shucked + length:shell + diameter:shucked + 
+    whole:shucked, data=data_train)
+summary(model_3_BIC_back)
+anova(model_3_BIC_back)
+```
 
-
-
-
-
-
+log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter
+    
+log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
+    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
+    shucked:whole + shucked:diameter
+    
+log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
+    sex:height + sex:shucked + length:shell + diameter:shucked + 
+    whole:shucked
