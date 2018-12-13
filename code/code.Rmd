@@ -177,29 +177,31 @@ vif(model_1t)
 
 added variable plot:
 ```{r}
-Model2_a <- lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train)
-Model2_wo_whole <- residuals(lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train))
-fit_whole <- residuals(lm(whole~sex+length+diameter+height+shucked+viscera+shell, data = data_train))
-plot(Model2_wo_whole~fit_whole, col='blue', main='added variable plot of whole weight')
-abline(lm(Model2_wo_whole~fit_whole), col='red')
+model_1t_wo_whole <- lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train)
+model_1t_wo_whole_res <- residuals(lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train))
+fit_whole_res <- residuals(lm(whole~sex+length+diameter+height+shucked+viscera+shell, data = data_train))
+pdf(file="../fig/add_value_plot.pdf", width=12)
+plot(model_1t_wo_whole_res~fit_whole_res, col='blue')
+abline(lm(model_1t_wo_whole_res~fit_whole_res), col='red')
+dev.off()
 ```
 Added-variable plot for whole implies that whole is of little additional help in explaining rings when other predictors are already in the model.
 
 vif for Model2_a
 ```{r}
-vif(Model2_a)
+vif(model_1t_wo_whole)
 ```
 Three terms `length`, `diameter` still have high VIF. Exclude `diameter` since it has largest VIF.
 ```{r}
-Model2_b <- lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train)
-Model2_wo_diameter <- residuals(lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train))
-fit_diameter <- residuals(lm(diameter~sex+length+height+shucked+viscera+shell, data = data_train))
-plot(Model2_wo_diameter~fit_diameter, col='blue', main='added variable plot of diameter')
-abline(lm(Model2_wo_diameter~fit_diameter), col='red')
+model_1t_wo_dia <- lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train)
+model_1t_wo_dia_res <- residuals(lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train))
+fit_diameter_res <- residuals(lm(diameter~sex+length+height+shucked+viscera+shell, data = data_train))
+plot(model_1t_wo_dia_res~fit_diameter_res, col='blue', main='added variable plot of diameter')
+abline(lm(model_1t_wo_dia_res~fit_diameter_res), col='red')
 ```
 vif for Model1_b
 ```{r}
-vif(Model2_b)
+vif(model_1t_wo_dia)
 ```
 VIF for each predictor looks better. But note that we couldn't drop any predictors only based on multicoliearity analysis. 
 
@@ -216,32 +218,35 @@ sse <- sum_sub$rss
 AIC <- n*log(sse/n) + 2*p
 BIC <- n*log(sse/n) + log(n)*p
 res_sub = cbind(sum_sub$which,sse,sum_sub$rsq,sum_sub$adjr2,sum_sub$cp,BIC,AIC)
+colnames(res_sub)=c(colnames(sum_sub$which),"sse", "R^2", "R^2_a", "Cp", "BIC", "AIC")
 res_sub
+xtable(res_sub)
 ```
 #8 is selected based on smallest BIC criteria.
 
 Using stepwise procedure:
 ```{r}
-Model0 <- lm(log(rings)~1, data = data_train)
+model_0 <- lm(log(rings)~1, data = data_train)
 # use BIC as criteria since n >> 8
-stepwise_BIC_both <- stepAIC(Model0, scope=list(upper=Model2, lower=Model0), direction="both", k=log(n))
+stepwise_BIC_both <- stepAIC(model_0, scope=list(upper=model_1t, lower=model_0), direction="both", k=log(n))
 stepwise_BIC_both$anova
-stepwise_BIC_forw <- stepAIC(Model0, scope=list(upper=Model2, lower=Model0), direction="forward", k=log(n))
+stepwise_BIC_forw <- stepAIC(model_0, scope=list(upper=model_1t, lower=model_0), direction="forward", k=log(n))
 stepwise_BIC_forw$anova
-stepwise_BIC_back <- stepAIC(Model2, scope=list(upper=~., lower=~1), direction="backward", k=log(n))
+stepwise_BIC_back <- stepAIC(model_1t, scope=list(upper=~., lower=~1), direction="backward", k=log(n))
 stepwise_BIC_back$anova
 ```
 Final Model:
 log(rings) ~ shell + shucked + diameter + sex + height + whole + viscera + length
 BIC = -9262.857
 
-No re-check of model diagnostics needed since the final model same as Model2.
+No re-check of model diagnostics needed since the final model same as model_1t
 
 ## Model with interaction term
 #### Residual plots with the interaction terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
 
-res_m2 <- resid(Model2)
+res_m2 <- resid(model_1t)
+pdf(file="../fig/res_plot_interaction.pdf", height=15,width=12)
 par(mfrow=c(7,3))
 
 plot(data_train$length*data_train$diameter,res_m2,xlab="length*diameter", col='blue')
@@ -274,51 +279,63 @@ plot(data_train$viscera*data_train$shell,res_m2,xlab="viscera*shell", col='blue'
 
 ## define Model4 as interaction full model based on Model2
 ```{r}
-Model3 <- lm(log(rings) ~.^2,data=data_train)
-length(Model3$coefficients) #number of coefficients
+model_2full <- lm(log(rings) ~.^2,data=data_train)
+length(model_2full$coefficients) #number of coefficients
 ```
-
-Model Diagnostics
-```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE}
-#define the new model
-Model4 <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell+sex:length+sex:height+length:diameter+length:whole+length:shucked, data=data_train)
-anova(Model4)['Residuals', 3]
-layout(matrix(c(1,2,3),1,3))
-plot(Model4, which =c(1,2), col='blue')
-boxcox(Model4)
-```
-
-#Exhaustive search
-```{r}
-m4_sub_set <- regsubsets(log(rings)~.^2,data = data_train, nbest = 1, nvmax = 36, method="exhaustive", really.big=T)
-m4_sum_sub <- summary(m4_sub_set)
-m4_p = as.integer(rownames(m4_sum_sub$which)) + 1 #number of coefficients in each model: p
-m4_ssto = sum((log(data_train[,9]) - mean(log(data_train[,9])))^2)
-m4_n=nrow(data_train)
-m4_sse <- m4_sum_sub$rss
-m4_AIC <- m4_n*log(m4_sse/m4_n) + 2*m4_p
-m4_BIC <- m4_n*log(m4_sse/m4_n) + log(m4_n)*m4_p
-m4_res_sub = cbind(m4_sum_sub$which,m4_sse,m4_sum_sub$rsq,m4_sum_sub$adjr2,m4_sum_sub$cp,m4_BIC,m4_AIC)
-colnames(m4_res_sub)=c(colnames(m4_sum_sub$which),"sse", "R^2", "R^2_a", "Cp", "BIC", "AIC")
-m4_res_sub
-```
-Interaction terms `sexN:height` `length:diameter` `length:whole` `length:shucked` were keeped based on BIC criteria. 
 
 Using stepwise procedure:
 ```{r}
 # Using Model2 as lower model
 # use BIC as criteria since n >> 8
-m4_stepwise_BIC_both <- stepAIC(Model0, scope=list(upper=Model3, lower=Model0), direction="both", k=log(n))
-m4_stepwise_BIC_both$anova
-m4_stepwise_BIC_forw <- stepAIC(Model0, scope=list(upper=Model3, lower=Model0), direction="forward", k=log(n))
-m4_stepwise_BIC_forw$anova
-m4_stepwise_BIC_back <- stepAIC(Model3, scope=list(upper=~., lower=Model0), direction="backward", k=log(n))
-m4_stepwise_BIC_back$anova
+m2_stepwise_BIC_both <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="both", k=log(n))
+m2_stepwise_BIC_both$anova
+m2_stepwise_BIC_forw <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="forward", k=log(n))
+m2_stepwise_BIC_forw$anova
+m2_stepwise_BIC_back <- stepAIC(model_2full, scope=list(upper=~., lower=model_0), direction="backward", k=log(n))
+m2_stepwise_BIC_back$anova
 ```
-Final Model:
-log(rings) ~ sex + length + diameter + height + whole + shucked +  viscera + shell + sex:height + length:diameter + length:whole + length:shucked
-with BIC  = -9722.491, which is smaller than Model2.
 
+
+
+```{r}
+model_2_bic_both <- lm(log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
+    height + shell:diameter + shucked:diameter + diameter:whole + 
+    shucked:sex + diameter:height + shell:height, data=data_train)
+summary(model_2_bic_both)
+anova(model_2_bic_both)
+```
+
+```{r}
+final_bic_forward = lm(log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
+    height + shell:diameter + shucked:diameter + diameter:sex + 
+    shucked:whole + diameter:whole + shucked:sex + sex:height + 
+    diameter:height + shell:height, data=data_train)
+summary(final_bic_forward)
+anova(final_bic_forward)
+```
+
+```{r}
+final_bic_back = lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + sex:length + sex:height + sex:shucked + 
+    length:diameter + length:shucked + diameter:shucked + whole:shell, data=data_train)
+summary(final_bic_back)
+anova(final_bic_back)
+```
+
+final_bic_both = log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
+    height + shell:diameter + shucked:diameter + diameter:whole + 
+    shucked:sex + diameter:height + shell:height
+
+final_bic_forward = log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
+    height + shell:diameter + shucked:diameter + diameter:sex + 
+    shucked:whole + diameter:whole + shucked:sex + sex:height + 
+    diameter:height + shell:height
+
+final_bic_back = log(rings) ~ sex + length + diameter + height + whole + shucked + 
+    viscera + shell + sex:length + sex:height + sex:shucked + 
+    length:diameter + length:shucked + diameter:shucked + whole:shell
+
+Above are all the model obtained using 
 Model Diagnostics 
 ```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE}
 #define the new model
@@ -405,4 +422,6 @@ m6_stepwise_BIC_back <- stepAIC(Model6, scope=list(upper=Model6, lower=Model5), 
 m6_stepwise_BIC_back$anova
 ```
 
+# Back up
+Code has been deleted
 
