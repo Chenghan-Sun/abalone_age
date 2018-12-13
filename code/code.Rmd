@@ -368,18 +368,6 @@ plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell", col='blue')
 dev.off()
 ```
 
-#### Plots of each predictor versus the response
-```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
-par(mfrow=c(4,2))
-plot(data_train$length,data_train$rings,xlab="length",ylab="rings", col='blue')
-plot(data_train$diameter,data_train$rings,xlab="diameter",ylab="rings", col='blue')
-plot(data_train$height,data_train$rings,xlab="height",ylab="rings", col='blue')
-plot(data_train$whole,data_train$rings,xlab="whole",ylab="rings", col='blue')
-plot(data_train$shucked,data_train$rings,xlab="shucked",ylab="rings", col='blue')
-plot(data_train$viscera,data_train$rings,xlab="viscera",ylab="rings", col='blue')
-plot(data_train$shell,data_train$rings,xlab="shell",ylab="rings", col='blue')
-```
-
 
 ```{r}
 model_3full <- lm(log(rings)~.^2+I(length^2)+I(diameter^2)+I(height^2)+I(whole^2)+I(shucked^2)+I(viscera^2)+I(shell^2), data = data_train)
@@ -436,169 +424,187 @@ log(rings) ~ sex + length + diameter + height + whole + shucked +
     viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
     sex:height + sex:shucked + length:shell + diameter:shucked + 
     whole:shucked
-    
+
+```{r}
+pdf(file="../fig/diag_model_3_BIC_both.pdf", width=12)
+layout(matrix(c(1,2),1,2))
+plot(model_3_BIC_both, which =c(1,2), col='blue')
+dev.off()
+```
+
+```{r}
+pdf(file="../fig/diag_model_3_BIC_for.pdf", width=12)
+layout(matrix(c(1,2),1,2))
+plot(model_3_BIC_forw, which =c(1,2), col='blue')
+dev.off()
+```
+
+```{r}
+pdf(file="../fig/diag_model_3_BIC_back.pdf", width=12)
+layout(matrix(c(1,2),1,2))
+plot(model_3_BIC_back, which =c(1,2), col='blue')
+dev.off()
+```
+
 #### Model Validation 
 ## Internal Validation 
 ```{r}
-# SSEp of models
-sse_model_1t <- anova(model_1t)["Residuals",2] #first order selected model
-sse_model_2_bic_both <- anova(model_2_bic_both)["Residuals",2] #second order selected models
-sse_model_2_bic_for <- anova(model_2_bic_for)["Residuals",2]
-sse_model_2_bic_back <- anova(model_2_bic_back)["Residuals",2]
-print("SSE")
-sse_model_1t
-sse_model_2_bic_both
-sse_model_2_bic_for
-sse_model_2_bic_back
-
-# MSEp of models 
-mse_model_1t <- anova(model_1t)["Residuals",3] #first order selected model
-mse_model_2_bic_both <- anova(model_2_bic_both)["Residuals",3] #second order selected models
-mse_model_2_bic_for <- anova(model_2_bic_for)["Residuals",3]
-mse_model_2_bic_back <- anova(model_2_bic_back)["Residuals",3]
-
 #MSEf
-msef <- anova(model_2full)["Residuals",3]
+msef <- anova(model_3full)["Residuals",3]
 
-# P Values
-p_model_1t <- length(model_1t$coefficients)
-p_model_2_bic_both <- length(model_2_bic_both$coefficients)
-p_model_2_bic_for <- length(model_2_bic_for$coefficients)
-p_model_2_bic_back <- length(model_2_bic_back$coefficients)
-print("P Value")
-p_model_1t
-p_model_2_bic_both
-p_model_2_bic_for
-p_model_2_bic_back 
+# function of all parameters needed for internal validation
+Internal_validation <- function(model){
+  mse_model <- anova(model)["Residuals",3]
+  sse_model <- anova(model)["Residuals",2]
+  pressp_model <- sum(model$residuals^2/(1-influence(model)$hat)^2)
+  p_model <- length(model$coefficients)
+  cp_model <- sse_model/msef-(n-2*p_model)
+  AIC_model <- n*log(sse_model/n) + 2*p_model
+  BIC_model <- n*log(sse_model/n) + log(n)*p_model
+  R_2_model <- summary(model)$r.squared
+  Ra_2_model <- summary(model)$adj.r.squared
+  print(paste("MSE of this model is", mse_model))
+  print(paste("SSE of this model is", sse_model))
+  print(paste("Pressp of this model is", pressp_model))
+  print(paste("P value of this model is", p_model))
+  print(paste("Cp of this model is", cp_model))
+  print(paste("AIC of this model is", AIC_model))
+  print(paste("BIC of this model is", BIC_model))
+  print(paste("R^2 of this model is", R_2_model))
+  print(paste("Ra^2 of this model is", Ra_2_model))
+}
 
-# Calculate Cp for each model 
-cp_model_1t <- sse_model_1t/msef-(n-2*p_model_1t)
-cp_model_2_bic_both <- sse_model_2_bic_both/msef-(n-2*p_model_2_bic_both)
-cp_model_2_bic_for <- sse_model_2_bic_for/msef-(n-2*p_model_2_bic_for)
-cp_model_2_bic_back <- sse_model_2_bic_back/msef-(n-2*p_model_2_bic_back)
-print("Cp")
-cp_model_1t 
-cp_model_2_bic_both
-cp_model_2_bic_for
-cp_model_2_bic_back
-
-# Pressp for each model
-pressp_model_1t <- sum(model_1t$residuals^2/(1-influence(model_1t)$hat)^2)
-pressp_model_2_bic_both <- sum(model_2_bic_both$residuals^2/(1-influence(model_2_bic_both)$hat)^2)
-pressp_model_2_bic_for <- sum(model_2_bic_for$residuals^2/(1-influence(model_2_bic_for)$hat)^2)
-pressp_model_2_bic_back <- sum(model_2_bic_back$residuals^2/(1-influence(model_2_bic_back)$hat)^2)
-print("Pressp")
-pressp_model_1t
-pressp_model_2_bic_both
-pressp_model_2_bic_for
-pressp_model_2_bic_back
+Internal_validation(model_1t)
+print("#####################################")
+Internal_validation(model_2full)
+print("#####################################")
+Internal_validation(model_2_bic_both)
+print("#####################################")
+Internal_validation(model_2_bic_for)
+print("#####################################")
+Internal_validation(model_2_bic_back)
+print("#####################################")
+Internal_validation(model_3full)
+print("#####################################")
+Internal_validation(model_3_BIC_both)
+print("#####################################")
+Internal_validation(model_3_BIC_back)
 ```
-We can say for model_2_bic_back Cp ≈ p (little bias in the model) and P ressp and SSEp are reasonably close (no severeoverfitting by the model).
 
 ##External validation using the validation set.
 ```{r}
-# For model_1t
-model_1t_valid <- lm(model_1t,data=data_validation) # model_1t on validation data
-summary(model_1t) #summary on training data
-summary(model_1t_valid) #summary on validation data
-#percent change in parameter estimation
-round(abs(coef(model_1t)-coef(model_1t_valid))/abs(coef(model_1t))*100,3)
-sd_model_1t <- summary(model_1t)$coefficients[,"Std. Error"] 
-sd_model_1t_valid <- summary(model_1t_valid)$coefficients[,"Std. Error"]
-#percent change in standard errors
-round(abs(sd_model_1t - sd_model_1t_valid )/sd_model_1t*100,3)
-##mean squared prediction error
-pred_data_model_1t  <- data_validation[,-9]
-pred_model_1t <- predict.lm(model_1t, pred_data_model_1t)
-mspe_model_1t <- mean((pred_model_1t - log(data_validation[,9]))^2)
+# define function of External validation
+External_validation <- function(model, data){
+  model_valid <- lm(model,data=data) # model on validation data
+  sum1 <- summary(model) #summary on training data
+  sum2 <- summary(model_valid) #summary on validation data
+  #percent change in parameter estimation
+  table1 <- round(abs(coef(model)-coef(model_valid))/abs(coef(model))*100,3)
+  sd_model <- summary(model)$coefficients[,"Std. Error"] 
+  sd_model_valid <- summary(model_valid)$coefficients[,"Std. Error"]
+  #percent change in standard errors
+  table2 <- round(abs(sd_model - sd_model_valid)/sd_model*100,3)
+  #mean squared prediction error
+  pred_data_model <- data[,-9]
+  pred_model <- predict.lm(model, pred_data_model)
+  mspe_model <- mean((pred_model - log(data[,9]))^2)
+  
+  print(sum1)
+  print(sum2)
+  print(table1)
+  print(table2)
+  print(paste("the mspe value for this model is", mspe_model))
+  pressp_by_n_model <- sum(model$residuals^2/(1-influence(model)$hat)^2)/n
+  print(paste("value of Pressp/n for this model is", pressp_by_n_model))
+}
 
-# For model_2_bic_both
-model_2_bic_both_valid <- lm(model_2_bic_both,data=data_validation) # model_2_bic_both on validation data
-summary(model_2_bic_both) #summary on training data
-summary(model_2_bic_both_valid) #summary on validation data
-#percent change in parameter estimation
-round(abs(coef(model_2_bic_both)-coef(model_2_bic_both_valid))/abs(coef(model_2_bic_both))*100,3)
-sd_model_2_bic_both <- summary(model_2_bic_both)$coefficients[,"Std. Error"] 
-sd_model_2_bic_both_valid <- summary(model_2_bic_both_valid)$coefficients[,"Std. Error"]
-#percent change in standard errors
-round(abs(sd_model_2_bic_both - sd_model_2_bic_both_valid )/sd_model_2_bic_both*100,3)
-##mean squared prediction error
-pred_data_model_2_bic_both <- data_validation[,-9]
-pred_model_2_bic_both <- predict.lm(model_2_bic_both, pred_data_model_2_bic_both)
-mspe_model_2_bic_both <- mean((pred_model_2_bic_both - log(data_validation[,9]))^2)
 
-# For model_2_bic_for
-model_2_bic_for_valid <- lm(model_2_bic_for,data=data_validation) # model_2_bic_for on validation data
-summary(model_2_bic_for) #summary on training data
-summary(model_2_bic_for_valid) #summary on validation data
-#percent change in parameter estimation
-round(abs(coef(model_2_bic_for)-coef(model_2_bic_for_valid))/abs(coef(model_2_bic_for))*100,3)
-sd_model_2_bic_for <- summary(model_2_bic_for)$coefficients[,"Std. Error"] 
-sd_model_2_bic_for_valid <- summary(model_2_bic_for_valid)$coefficients[,"Std. Error"]
-#percent change in standard errors
-round(abs(sd_model_2_bic_for - sd_model_2_bic_for_valid )/sd_model_2_bic_for*100,3)
-##mean squared prediction error
-pred_data_model_2_bic_for <- data_validation[,-9]
-pred_model_2_bic_for <- predict.lm(model_2_bic_for, pred_data_model_2_bic_for)
-mspe_model_2_bic_for <- mean((pred_model_2_bic_for - log(data_validation[,9]))^2)
-
-# For model_2_bic_back
-model_2_bic_back_valid <- lm(model_2_bic_back,data=data_validation) # model_2_bic_back on validation data
-summary(model_2_bic_back) #summary on training data
-summary(model_2_bic_back_valid) #summary on validation data
-#percent change in parameter estimation
-round(abs(coef(model_2_bic_back)-coef(model_2_bic_back_valid))/abs(coef(model_2_bic_back))*100,3)
-sd_model_2_bic_back <- summary(model_2_bic_back)$coefficients[,"Std. Error"] 
-sd_model_2_bic_back_valid <- summary(model_2_bic_back_valid)$coefficients[,"Std. Error"]
-#percent change in standard errors
-round(abs(sd_model_2_bic_back - sd_model_2_bic_back_valid )/sd_model_2_bic_back*100,3)
-##mean squared prediction error
-pred_data_model_2_bic_back <- data_validation[,-9]
-pred_model_2_bic_back <- predict.lm(model_2_bic_back, pred_data_model_2_bic_back)
-mspe_model_2_bic_back <- mean((pred_model_2_bic_back - log(data_validation[,9]))^2)
-
-print("the mspe values for each model")
-mspe_model_1t
-mspe_model_2_bic_both
-mspe_model_2_bic_for
-mspe_model_2_bic_back
-
-# Calculate Pressp/n for each model
-print("value of Pressp for each model")
-pressp_model_1t/n
-pressp_model_2_bic_both/n
-pressp_model_2_bic_for/n
-pressp_model_2_bic_back/n
+External_validation(model_1t, data_validation)
+print("#####################################")
+External_validation(model_2_bic_both, data_validation)
+print("#####################################")
+External_validation(model_2_bic_for, data_validation)
+print("#####################################")
+External_validation(model_2_bic_back, data_validation)
+print("#####################################")
+External_validation(model_3_BIC_both, data_validation) #model_3_BIC_both and model_3_BIC_forw are the same 
+print("#####################################")
+External_validation(model_3_BIC_back, data_validation)
 ```
+# Our final chosen model is model_3_BIC_both (model_3_BIC_forw, same model)
 
-
-
+Fit the final model using the entire data set
 ```{r}
-model_3_BIC_forw <- lm(log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
-    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
-    shucked:whole + shucked:diameter, data=data_train)
-summary(model_3_BIC_forw)
-anova(model_3_BIC_forw)
+final_model <- lm(model_3_BIC_both, data = data)
+summary(final_model)
+anova(final_model)
 ```
 
+## Model diagnostic: Outlying and influential cases
+Model Diagnostics for final model
 ```{r}
-model_3_BIC_back <- lm(log(rings) ~ sex + length + diameter + height + whole + shucked + 
-    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
-    sex:height + sex:shucked + length:shell + diameter:shucked + 
-    whole:shucked, data=data_train)
-summary(model_3_BIC_back)
-anova(model_3_BIC_back)
+layout(matrix(c(1,2),1,2))
+plot(final_model, which =c(1,2), col='blue')
 ```
+constant variance + slightly heavy tailed 
 
-log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
-    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
-    shucked:whole + shucked:diameter
-    
-log(rings) ~ shell + I(shucked^2) + I(shell^2) + shucked + diameter + 
-    I(diameter^2) + whole + sex + viscera + I(length^2) + whole:sex + 
-    shucked:whole + shucked:diameter
-    
-log(rings) ~ sex + length + diameter + height + whole + shucked + 
-    viscera + shell + I(diameter^2) + I(shucked^2) + sex:length + 
-    sex:height + sex:shucked + length:shell + diameter:shucked + 
-    whole:shucked
+# check outliers in Y
+```{r}
+res_final <- residuals(final_model)# residuals of the final model
+n <- nrow(data)
+p <- ncol(data)
+h1 <- influence(final_model)$hat
+std_d_res <- studres(final_model) #studentized deleted residuals
+max(abs(std_d_res))
+sort(abs(std_d_res), decreasing=T)
+qt(1-0.1/(2*n),n-p-1) # bonferronis thresh hold
+outlier_Y = as.vector(which(abs(std_d_res)>=qt(1-0.1/(2*n),n-p-1)))
+```
+Get the index of outliers outlying in Y
+```{r}
+outlier_Y ## outliers in Y
+```
+for α= 0.1, 2 observations were identified as outliers in Y.
+
+Obtain the leverage and identify any outlying X observations
+```{r}
+outlier_X = as.vector(which(h1>(2*p/n)))
+outlier_X ## 635 outliers in X
+length(outlier_X)
+plot(res_final, h1, xlab="residuals", ylab="leverage")
+``` 
+In terms of X observations, the leverage method has detected 635 observations as outliers.
+ 
+Influence index plot using Cook’s distance
+```{r}
+mse_final = anova(final_model)["Residuals", 3]
+cook_distance = res_final^2*h1/(p*mse_final*(1-h1)^2)
+sort(cook_distance[outlier_X], decreasing = TRUE)
+sort(cook_distance[outlier_X], decreasing = TRUE) > 4/(n-p)
+plot(final_model, which=4)
+plot(final_model, which=5)
+```
+cases [1210, 2109, 3929] have largest cook's distance
+
+Calculate the average absolute percent difference in the fitted values with and without the most influential cases identified above.
+```{r}
+final_model_2 <- lm(final_model, data=data[-1210,])
+final_fit_1 <- fitted(final_model)
+final_fit_2 <- fitted(final_model_2)
+final_fit_1 <- final_fit_1[-1210]
+final_fit <- final_fit_1 - final_fit_2
+sum <- 0
+for(i in 1:length(final_fit_1))
+{
+sum <- sum + abs(final_fit[i]/final_fit_1[i]);
+}
+yhat_1210 <- fitted(final_model)[1210]
+beta_new <- as.vector(final_model_2$coefficients)
+x_1210 <- c(1,data$shell[1210],(data$shucked[1210])^2,(data$shell[1210])^2,data$shucked[1210], data$diameter[1210], (data$diameter[1210])^2, data$whole[1210], data$sex[1210], data$viscera[1210], (data$length[1210])^2, data$whole[1210]:data$sex[1210], data$shucked[1210]:data$whole[1210], data$shucked[1210]:data$diameter[1210])
+y_1210 <- t(beta_new)%*%x_1210
+sum <- sum+abs((yhat_1210-y_1210)/yhat_1210)
+per_average <- sum*100/n
+per_average
+```
+we fit the model without 1210th case and calculate the average absolute percent difference in the fitted values as 0.006085652. For 1210th case, the percentage change on the fitted value with or without the case is very small. Therefore, no case have an unduly large influence on prediction and thus all cases may be retained.
+
