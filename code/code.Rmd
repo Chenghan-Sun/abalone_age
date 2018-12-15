@@ -1,6 +1,10 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. It is the main r file including the related code for the project for the STA 206.
@@ -41,9 +45,9 @@ It's observed that only sex is qualitative variable, we'll consider indicator va
 The ggpairs plot below has same functionality as matrix scatter plot, boxplots, and histogram plots
 ```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 
-pdf(file="../fig/origin_pair.pdf", height = 15, width = 12)
+#pdf(file="../fig/origin_pair.pdf", height = 15, width = 12)
 ggpairs(data, aes(colour=sex, alpha=0.6), title="Pairs plot for abalone dataset") + theme_grey(base_size = 8)
-dev.off()
+#dev.off()
 
 ```
 
@@ -85,9 +89,9 @@ blank_theme <- theme_minimal()+
   axis.ticks = element_blank(),
   plot.title=element_text(size=14, face="bold")
   )
-pdf(file="../fig/pie.pdf")
+#pdf(file="../fig/pie.pdf")
 pie + blank_theme
-dev.off()
+#dev.off()
 ```
 
 #### Part 2: Split data
@@ -110,7 +114,7 @@ summary(data_train)
 ```
 Examine the similarity of training set and validation set
 ```{r}
-pdf(file="../fig/data_split.pdf")
+#pdf(file="../fig/data_split.pdf")
 par(mfrow=c(3,3))
 boxplot(data_train$length, data_validation$length, col = 'orange', main = 'length', names=c('train', 'validation'))
 boxplot(data_train$diameter, data_validation$diameter, col = 'orange', main = 'diameter', names=c('train', 'validation'))
@@ -120,7 +124,7 @@ boxplot(data_train$shucked, data_validation$shucked, col = 'orange', main = 'shu
 boxplot(data_train$viscera, data_validation$viscera, col = 'orange', main = 'viscera weight', names=c('train', 'validation'))
 boxplot(data_train$shell, data_validation$shell, col = 'orange', main = 'shell weight', names=c('train', 'validation'))
 boxplot(data_train$rings, data_validation$rings, col = 'orange', main = 'rings', names=c('train', 'validation'))
-dev.off()
+#dev.off()
 ```
 The data distribution looks similar. 
 
@@ -129,10 +133,10 @@ The first model: Additive Multiple Linear Regression Model: (consider subsets se
 ```{r}
 model_1 <- lm(rings~sex+length+diameter+height+whole+shucked+viscera+shell, data = data_train)
 summary(model_1)
-pdf(file="../fig/model_1.pdf", width=12)
+#pdf(file="../fig/model_1.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_1, which =c(1,2), col='blue')
-dev.off()
+#dev.off()
 anova(model_1)['Residuals', 3]
 ```
 - No equal variance, Q-Q plot shows heavy tailed.
@@ -141,20 +145,20 @@ anova(model_1)['Residuals', 3]
 - MSE
 Box-Cox Transformations:
 ```{r}
-pdf(file="../fig/boxcox_model_1.pdf")
+#pdf(file="../fig/boxcox_model_1.pdf")
 boxcox(model_1)
-dev.off()
+#dev.off()
 ```
 lambda ~ 0 indicates logrithm transformation of rings 
 ```{r fig.height=2, fig.width=5, message=FALSE, warning=FALSE} 
 model_1t <- lm(log(rings)~sex+length+diameter+height+whole+shucked+viscera+shell, data=data_train)
 summary(model_1t)
 anova(model_1t)['Residuals', 3]
-pdf(file="../fig/model_1t.pdf", width=12)
+#pdf(file="../fig/model_1t.pdf", width=12)
 layout(matrix(c(1,2,3),1,3))
 plot(model_1t, which =c(1,2), col='blue')
 boxcox(model_1t)
-dev.off()
+#dev.off()
 ```
 - Residuals vs. fitted value plot still shows nonlinearity, and QQ plot shows right-skewed
 We can see R2 increase to 0.6035 and MSE is much smaller.
@@ -164,9 +168,9 @@ Pair plot for model 1t
 # make another dataset with log(rings) for pair plot
 data_log <- data_train
 data_log[,9] <- log(data_log[,9])
-pdf(file="../fig/pair_log_trans.pdf", height=15, width=12)
+#pdf(file="../fig/pair_log_trans.pdf", height=15, width=12)
 ggpairs(data_log, aes(colour = sex, alpha = 0.6), title="Pairs plot for data in training set after log-transformation") + theme_grey(base_size = 8)
-dev.off()
+#dev.off()
 ```
 No obvious nonlinearity observed.
 
@@ -181,10 +185,11 @@ added variable plot:
 model_1t_wo_whole <- lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train)
 model_1t_wo_whole_res <- residuals(lm(log(rings)~sex+length+diameter+height+shucked+viscera+shell, data=data_train))
 fit_whole_res <- residuals(lm(whole~sex+length+diameter+height+shucked+viscera+shell, data = data_train))
-pdf(file="../fig/add_value_plot.pdf", width=12)
-plot(model_1t_wo_whole_res~fit_whole_res, col='blue')
-abline(lm(model_1t_wo_whole_res~fit_whole_res), col='red')
-dev.off()
+fit <- lm(model_1t_wo_whole_res~fit_whole_res)
+#pdf(file="../fig/add_value_plot.pdf", width=12)
+#plot(model_1t_wo_whole_res~fit_whole_res, col='blue')
+#abline(fit, col='red')
+#dev.off()
 ```
 Added-variable plot for whole implies that whole is of little additional help in explaining rings when other predictors are already in the model.
 
@@ -197,8 +202,8 @@ Three terms `length`, `diameter` still have high VIF. Exclude `diameter` since i
 model_1t_wo_dia <- lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train)
 model_1t_wo_dia_res <- residuals(lm(log(rings)~sex+length+height+shucked+viscera+shell, data = data_train))
 fit_diameter_res <- residuals(lm(diameter~sex+length+height+shucked+viscera+shell, data = data_train))
-plot(model_1t_wo_dia_res~fit_diameter_res, col='blue', main='added variable plot of diameter')
-abline(lm(model_1t_wo_dia_res~fit_diameter_res), col='red')
+#plot(model_1t_wo_dia_res~fit_diameter_res, col='blue', main='added variable plot of diameter')
+#abline(lm(model_1t_wo_dia_res~fit_diameter_res), col='red')
 ```
 vif for Model1_b
 ```{r}
@@ -221,7 +226,7 @@ BIC <- n*log(sse/n) + log(n)*p
 res_sub = cbind(sum_sub$which,sse,sum_sub$rsq,sum_sub$adjr2,sum_sub$cp,BIC,AIC)
 colnames(res_sub)=c(colnames(sum_sub$which),"sse", "R^2", "R^2_a", "Cp", "BIC", "AIC")
 res_sub
-xtable(res_sub)
+#xtable(res_sub)
 ```
 #8 is selected based on smallest BIC criteria.
 
@@ -289,11 +294,11 @@ Using stepwise procedure:
 ```{r}
 # Using Model2 as lower model
 # use BIC as criteria since n >> 8
-m2_stepwise_BIC_both <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="both", k=log(n))
+m2_stepwise_BIC_both <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="both", k=log(n),trace=FALSE)
 m2_stepwise_BIC_both$anova
-m2_stepwise_BIC_forw <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="forward", k=log(n))
+m2_stepwise_BIC_forw <- stepAIC(model_0, scope=list(upper=model_2full, lower=model_0), direction="forward", k=log(n),trace=FALSE)
 m2_stepwise_BIC_forw$anova
-m2_stepwise_BIC_back <- stepAIC(model_2full, scope=list(upper=~., lower=model_0), direction="backward", k=log(n))
+m2_stepwise_BIC_back <- stepAIC(model_2full, scope=list(upper=~., lower=model_0), direction="backward", k=log(n),trace=FALSE)
 m2_stepwise_BIC_back$anova
 ```
 
@@ -319,10 +324,10 @@ model_2_bic_for = lm(log(rings) ~ shell + shucked + diameter + whole + sex + vis
 summary(model_2_bic_for)
 anova(model_2_bic_for)
 
-pdf(file="../fig/diag_model_2_bic_for.pdf", width=12)
+#pdf(file="../fig/diag_model_2_bic_for.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_2_bic_for, which =c(1,2), col='blue')
-dev.off()
+#dev.off()
 ```
 
 ```{r}
@@ -331,10 +336,10 @@ model_2_bic_back = lm(log(rings) ~ sex + length + diameter + height + whole + sh
     length:diameter + length:shucked + diameter:shucked + whole:shell, data=data_train)
 summary(model_2_bic_back)
 anova(model_2_bic_back)
-pdf(file="../fig/diag_model_2_bic_back.pdf", width=12)
+#pdf(file="../fig/diag_model_2_bic_back.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_2_bic_back, which =c(1,2), col='blue')
-dev.off()
+#dev.off()
 ```
 
 final_bic_both = log(rings) ~ shell + shucked + diameter + whole + sex + viscera + 
@@ -355,7 +360,6 @@ final_bic_back = log(rings) ~ sex + length + diameter + height + whole + shucked
 #### Residual plots with the second order terms
 ```{r fig.height=8, fig.width=5, message=FALSE, warning=FALSE} 
 res_m2 <- resid(model_1t)
-pdf(file="../fig/res_plot_quadratic.pdf", width=12)
 par(mfrow=c(4,2))
 plot(data_train$length*data_train$length,res_m2,xlab="length*length", col='blue')
 plot(data_train$diameter*data_train$diameter,res_m2,xlab="diameter*diameter", col='blue')
@@ -365,7 +369,6 @@ plot(data_train$shucked*data_train$shucked,res_m2,xlab="shucked*shucked", col='b
 plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell", col='blue')
 plot(data_train$viscera*data_train$viscera,res_m2,xlab="viscera*viscera", col='blue')
 plot(data_train$shell*data_train$shell,res_m2,xlab="shell*shell", col='blue')
-dev.off()
 ```
 
 
@@ -379,11 +382,11 @@ Using stepwise procedure:
 ```{r}
 # Using Model5 as lower model
 # use BIC as criteria since n >> 10
-stepwise_3_BIC_both <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="both", k=log(n))
+stepwise_3_BIC_both <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="both", k=log(n), trace=FALSE)
 stepwise_3_BIC_both$anova
-stepwise_3_BIC_forw <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="forward", k=log(n))
+stepwise_3_BIC_forw <- stepAIC(model_0, scope=list(upper=model_3full, lower=model_0), direction="forward", k=log(n), trace=FALSE)
 stepwise_3_BIC_forw$anova
-stepwise_3_BIC_back <- stepAIC(model_3full, scope=list(upper=model_3full, lower=model_0), direction="backward", k=log(n))
+stepwise_3_BIC_back <- stepAIC(model_3full, scope=list(upper=model_3full, lower=model_0), direction="backward", k=log(n), trace=FALSE)
 stepwise_3_BIC_back$anova
 ```
 
@@ -426,24 +429,18 @@ log(rings) ~ sex + length + diameter + height + whole + shucked +
     whole:shucked
 
 ```{r}
-pdf(file="../fig/diag_model_3_BIC_both.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_3_BIC_both, which =c(1,2), col='blue')
-dev.off()
 ```
 
 ```{r}
-pdf(file="../fig/diag_model_3_BIC_for.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_3_BIC_forw, which =c(1,2), col='blue')
-dev.off()
 ```
 
 ```{r}
-pdf(file="../fig/diag_model_3_BIC_back.pdf", width=12)
 layout(matrix(c(1,2),1,2))
 plot(model_3_BIC_back, which =c(1,2), col='blue')
-dev.off()
 ```
 
 #### Model Validation 
@@ -532,6 +529,19 @@ print("#####################################")
 External_validation(model_3_BIC_back, data_validation)
 ```
 # Our final chosen model is model_3_BIC_both (model_3_BIC_forw, same model)
+```{r}
+coef <- function(model, data){
+  model_valid <- lm(model,data=data) # model on validation data
+  sum1 <- summary(model) #summary on training data
+  sum2 <- summary(model_valid) #summary on validation data
+  vec <- cbind(sum1$coefficients[,1], sum2$coefficients[,1])
+  return (vec)
+}
+
+t1 <- coef(model_2_bic_back, data_validation)
+t2 <- coef(model_3_BIC_both, data_validation)
+t3 <- coef(model_3_BIC_back, data_validation)
+```
 
 Fit the final model using the entire data set
 ```{r}
@@ -555,9 +565,9 @@ n <- nrow(data)
 p <- ncol(data)
 h1 <- influence(final_model)$hat
 std_d_res <- studres(final_model) #studentized deleted residuals
-max(abs(std_d_res))
-sort(abs(std_d_res), decreasing=T)
-qt(1-0.1/(2*n),n-p-1) # bonferronis thresh hold
+max_vlue <- max(abs(std_d_res))
+sort_result <- sort(abs(std_d_res), decreasing=T)
+result_trmp <- qt(1-0.1/(2*n),n-p-1) # bonferronis thresh hold
 outlier_Y = as.vector(which(abs(std_d_res)>=qt(1-0.1/(2*n),n-p-1)))
 ```
 Get the index of outliers outlying in Y
@@ -569,9 +579,11 @@ for α= 0.1, 2 observations were identified as outliers in Y.
 Obtain the leverage and identify any outlying X observations
 ```{r}
 outlier_X = as.vector(which(h1>(2*p/n)))
-outlier_X ## 635 outliers in X
+# outlier_X ## 635 outliers in X
 length(outlier_X)
+
 plot(res_final, h1, xlab="residuals", ylab="leverage")
+
 ``` 
 In terms of X observations, the leverage method has detected 635 observations as outliers.
  
@@ -579,10 +591,13 @@ Influence index plot using Cook’s distance
 ```{r}
 mse_final = anova(final_model)["Residuals", 3]
 cook_distance = res_final^2*h1/(p*mse_final*(1-h1)^2)
-sort(cook_distance[outlier_X], decreasing = TRUE)
-sort(cook_distance[outlier_X], decreasing = TRUE) > 4/(n-p)
+tmp <- sort(cook_distance[outlier_X], decreasing = TRUE)
+tmp1 <- sort(cook_distance[outlier_X], decreasing = TRUE) > 4/(n-p)
+#pdf(file="../fig/cook.pdf", width=12)
+layout(matrix(c(1,2),1,2))
 plot(final_model, which=4)
 plot(final_model, which=5)
+#dev.off()
 ```
 cases [1210, 2109, 3929] have largest cook's distance
 
@@ -607,4 +622,3 @@ per_average <- sum*100/n
 per_average
 ```
 we fit the model without 1210th case and calculate the average absolute percent difference in the fitted values as 0.006085652. For 1210th case, the percentage change on the fitted value with or without the case is very small. Therefore, no case have an unduly large influence on prediction and thus all cases may be retained.
-
